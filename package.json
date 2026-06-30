@@ -1,0 +1,21 @@
+{
+  "name": "avion-platform-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-cloudflare": "^5",
+    "@sveltejs/kit": "^2",
+    "@sveltejs/vite-plugin-svelte": "^5",
+    "@tailwindcss/vite": "^4",
+    "svelte": "^5",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vite": "^6"
+  },
+  "type": "module"
+}

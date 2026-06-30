@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@theme {
+  --color-avion-orange: #FF9900;
+  --color-avion-canvas: #0A0A0F;
+  --color-avion-surface: #141419;
+  --color-avion-card: #1A1A20;
+  --color-avion-border: #252530;
+  --color-avion-text: #FFFFFF;
+  --color-avion-muted: #8A8A96;
+  --color-avion-dim: #555560;
+  --color-avion-green: #22C55E;
+  --color-avion-red: #EF4444;
+  --color-avion-amber: #F59E0B;
+}
+
+body {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* Breathing ring animation */
+@keyframes breathe {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.02); }
+}
+
+.ring-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* Glow pulse */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(255,153,0,0.3); }
+  50% { box-shadow: 0 0 20px rgba(255,153,0,0.6); }
+}
+
+.glow-pulse {
+  animation: glow 3s ease-in-out infinite;
+}
