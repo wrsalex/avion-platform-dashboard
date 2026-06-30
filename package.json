@@ -15,7 +15,8 @@
     "svelte": "^5",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vite": "^6"
+    "vite": "^6",
+    "wrangler": "^4.106.0"
   },
   "type": "module"
 }
