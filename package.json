@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@sveltejs/adapter-cloudflare": "^5",
+    "@sveltejs/adapter-cloudflare": "^7.2.9",
     "@sveltejs/kit": "^2",
     "@sveltejs/vite-plugin-svelte": "^5",
     "@tailwindcss/vite": "^4",
