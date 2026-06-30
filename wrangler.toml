@@ -1,0 +1,7 @@
+name = "avion-platform-dashboard"
+compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2026-06-30"
+
+[assets]
+binding = "ASSETS"
+directory = ".svelte-kit/cloudflare"
