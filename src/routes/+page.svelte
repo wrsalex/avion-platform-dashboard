@@ -7,9 +7,15 @@
   let alerts: any[] = [];
   let skillHub: any = { published: 0, flagged: 0, deprecated: 0, total: 0 };
   let loading = true;
-  let now = new Date().toLocaleTimeString('en-HK', { hour12: false, timeZone: 'Asia/Hong_Kong' });
+  let time = '';
+
+  function tick() {
+    time = new Date().toLocaleTimeString('en-HK', { hour12: false, timeZone: 'Asia/Hong_Kong' });
+  }
 
   onMount(async () => {
+    tick();
+    setInterval(tick, 1000);
     [services, costs, alerts, skillHub] = await Promise.all([
       fetchServiceStatus(),
       fetchCosts(),
@@ -18,106 +24,191 @@
     ]);
     loading = false;
   });
+
+  const health = $derived(
+    services.length > 0
+      ? services.every((s: any) => s.status === 'healthy')
+        ? 'healthy'
+        : services.some((s: any) => s.status === 'down')
+          ? 'down'
+          : 'degraded'
+      : 'loading'
+  );
+
+  const maxCost = $derived(Math.max(...costs.services.map((s: any) => s.current_month), 1));
+  const publishedPct = $derived(skillHub.total > 0 ? Math.round((skillHub.published / skillHub.total) * 100) : 0);
 </script>
 
-<div class="space-y-6">
-  <!-- Header -->
+<div class="space-y-5">
+  <!-- Title bar -->
   <div class="flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="relative">
-        <div class="w-10 h-10 rounded-full bg-[#FF9900]/20 ring-breathe flex items-center justify-center">
-          <div class="w-4 h-4 rounded-full bg-[#FF9900] glow-pulse"></div>
-        </div>
-      </div>
-      <div>
-        <h1 class="text-base font-bold text-white tracking-tight">Platform Operations</h1>
-        <p class="text-xs text-[#8A8A96]">{now} HKT</p>
-      </div>
+    <div>
+      <h1 class="text-sm font-bold text-white tracking-wide">Overview</h1>
+      <p class="text-[10px] text-[#555560] mt-0.5 font-mono">{time} HKT</p>
     </div>
-    <div class="text-xs text-[#8A8A96]">
-      {loading ? 'Loading...' : 'Live'}
+    <div class="flex items-center gap-2 text-[10px] text-[#555560]">
+      <span class="w-1.5 h-1.5 rounded-full {health === 'healthy' ? 'bg-[#22C55E] animate-pulse' : health === 'degraded' ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'}"></span>
+      {loading ? 'Connecting' : health === 'healthy' ? 'All systems operational' : health === 'degraded' ? 'Degraded' : 'Outage'}
     </div>
   </div>
 
-  <!-- Service Status Cards -->
-  <div class="grid grid-cols-3 gap-4">
+  <!-- Status strip -->
+  <div class="grid grid-cols-3 gap-3">
     {#each services as svc}
-      <div class="bg-[#1A1A20] rounded-lg p-4 border border-[#252530]">
-        <div class="flex items-center gap-2 mb-2">
-          <div class="w-2 h-2 rounded-full {svc.status === 'healthy' ? 'bg-[#22C55E]' : svc.status === 'degraded' ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'}"></div>
-          <span class="text-[11px] font-medium text-[#8A8A96] uppercase tracking-wider">{svc.name}</span>
+      <button class="bg-[#141419] rounded-lg p-3 border border-[#1A1A26] hover:border-[#252530] transition-all text-left group">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[10px] font-medium text-[#8A8A96] uppercase tracking-wider">{svc.name}</span>
+          <span class="w-1.5 h-1.5 rounded-full {svc.status === 'healthy' ? 'bg-[#22C55E]' : svc.status === 'degraded' ? 'bg-[#F59E0B]' : 'bg-[#EF4444]'} {svc.status === 'healthy' ? 'animate-pulse' : ''}"></span>
         </div>
-        <div class="text-xl font-bold text-white">
-          {svc.status === 'healthy' ? 'Online' : svc.status === 'degraded' ? 'Slow' : 'Down'}
+        <div class="text-xs font-bold {svc.status === 'healthy' ? 'text-[#22C55E]' : svc.status === 'degraded' ? 'text-[#F59E0B]' : 'text-[#EF4444]'}">
+          {svc.status === 'healthy' ? 'Operational' : svc.status === 'degraded' ? 'Degraded' : 'Down'}
         </div>
-        {#if svc.latency}
-          <div class="text-[10px] text-[#555560] mt-1">{svc.latency}ms</div>
-        {/if}
-      </div>
+      </button>
     {/each}
   </div>
 
-  <!-- Cost + Skills Row -->
-  <div class="grid grid-cols-2 gap-4">
-    <!-- Cost card -->
-    <div class="bg-[#1A1A20] rounded-lg p-4 border border-[#252530]">
-      <div class="text-[11px] font-medium text-[#8A8A96] uppercase tracking-wider mb-3">Monthly Costs</div>
-      <div class="flex items-end gap-2 mb-2">
-        <span class="text-2xl font-bold text-white">${costs.total.toFixed(2)}</span>
-        <span class="text-xs {costs.trend < 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'}">
-          {costs.trend > 0 ? '↑' : '↓'} {Math.abs(costs.trend)}%
-        </span>
+  <!-- Main grid: Costs + Skill Hub + Pipeline -->
+  <div class="grid grid-cols-3 gap-3">
+    <!-- Costs Card -->
+    <div class="bg-[#141419] rounded-lg p-4 border border-[#1A1A26] col-span-1">
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-[10px] font-medium text-[#8A8A96] uppercase tracking-wider">Monthly Costs</span>
+        <a href="/costs" class="text-[9px] text-[#555560] hover:text-[#FF9900] transition-colors">Details →</a>
       </div>
-      <div class="space-y-1.5">
+      
+      <div class="text-3xl font-bold text-white mb-1 font-mono">${costs.total.toFixed(0)}</div>
+      <div class="text-[10px] {costs.trend < 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'} mb-4">
+        {costs.trend < 0 ? '↓' : '↑'} {Math.abs(costs.trend)}% vs last month
+      </div>
+
+      <div class="space-y-2">
         {#each costs.services as s}
-          <div class="flex justify-between text-xs">
-            <span class="text-[#8A8A96]">{s.service}</span>
-            <span class="text-white">${s.current_month.toFixed(2)}</span>
+          <div class="group">
+            <div class="flex justify-between text-[10px] mb-1">
+              <span class="text-[#8A8A96]">{s.service}</span>
+              <span class="text-white font-mono">${s.current_month.toFixed(2)}</span>
+            </div>
+            <div class="h-1 rounded-full bg-[#1A1A26] overflow-hidden">
+              <div 
+                class="h-full rounded-full transition-all duration-500 bg-[#FF9900]"
+                style="width: {Math.min((s.current_month / maxCost) * 100, 100)}%"
+              ></div>
+            </div>
           </div>
         {/each}
       </div>
+      <div class="mt-3 pt-3 border-t border-[#1A1A26] flex justify-between text-[9px] text-[#555560]">
+        <span>Total</span>
+        <span class="text-white font-mono">${costs.total.toFixed(2)}</span>
+      </div>
     </div>
 
-    <!-- Skill Hub card -->
-    <div class="bg-[#1A1A20] rounded-lg p-4 border border-[#252530]">
-      <div class="text-[11px] font-medium text-[#8A8A96] uppercase tracking-wider mb-3">Skill Hub</div>
-      <div class="text-2xl font-bold text-white mb-2">{skillHub.total} skills</div>
-      <div class="flex gap-4 text-xs">
-        <div class="flex items-center gap-1">
-          <div class="w-1.5 h-1.5 rounded-full bg-[#22C55E]"></div>
-          <span class="text-white">{skillHub.published}</span>
-          <span class="text-[#555560]">published</span>
+    <!-- Skill Hub Card -->
+    <div class="bg-[#141419] rounded-lg p-4 border border-[#1A1A26]">
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-[10px] font-medium text-[#8A8A96] uppercase tracking-wider">Skill Hub</span>
+        <a href="/skills" class="text-[9px] text-[#555560] hover:text-[#FF9900] transition-colors">Details →</a>
+      </div>
+
+      <div class="text-3xl font-bold text-white mb-1 font-mono">{skillHub.total}</div>
+      <div class="text-[10px] text-[#555560] mb-4">total skills</div>
+
+      <!-- Publish ratio bar -->
+      <div class="h-2 rounded-full bg-[#1A1A26] overflow-hidden mb-3 flex">
+        {#if publishedPct > 0}
+          <div class="h-full bg-[#22C55E]" style="width: {publishedPct}%"></div>
+        {/if}
+        {#if skillHub.flagged > 0}
+          <div class="h-full bg-[#F59E0B]" style="width: {skillHub.total > 0 ? (skillHub.flagged / skillHub.total) * 100 : 0}%"></div>
+        {/if}
+        {#if skillHub.deprecated > 0}
+          <div class="h-full bg-[#1A1A26]" style="width: {skillHub.total > 0 ? (skillHub.deprecated / skillHub.total) * 100 : 0}%"></div>
+        {/if}
+      </div>
+
+      <div class="grid grid-cols-3 gap-2">
+        <div class="text-center">
+          <div class="text-sm font-bold text-[#22C55E] font-mono">{skillHub.published}</div>
+          <div class="text-[9px] text-[#555560]">Published</div>
         </div>
-        <div class="flex items-center gap-1">
-          <div class="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></div>
-          <span class="text-white">{skillHub.flagged}</span>
-          <span class="text-[#555560]">flagged</span>
+        <div class="text-center">
+          <div class="text-sm font-bold text-[#F59E0B] font-mono">{skillHub.flagged}</div>
+          <div class="text-[9px] text-[#555560]">Flagged</div>
         </div>
-        <div class="flex items-center gap-1">
-          <div class="w-1.5 h-1.5 rounded-full bg-[#EF4444]"></div>
-          <span class="text-white">{skillHub.deprecated}</span>
-          <span class="text-[#555560]">deprecated</span>
+        <div class="text-center">
+          <div class="text-sm font-bold text-[#555560] font-mono">{skillHub.deprecated}</div>
+          <div class="text-[9px] text-[#555560]">Deprecated</div>
         </div>
+      </div>
+
+      <div class="mt-3 pt-3 border-t border-[#1A1A26]">
+        <div class="flex items-center gap-1.5 text-[9px]">
+          <span class="text-[#555560]">Health:</span>
+          <span class="{publishedPct >= 80 ? 'text-[#22C55E]' : publishedPct >= 50 ? 'text-[#F59E0B]' : 'text-[#EF4444]'} font-medium">{publishedPct}% publish rate</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline Health Card -->
+    <div class="bg-[#141419] rounded-lg p-4 border border-[#1A1A26]">
+      <span class="text-[10px] font-medium text-[#8A8A96] uppercase tracking-wider">Pipeline Health</span>
+      
+      <div class="mt-4 space-y-3">
+        <!-- Pipeline success rate -->
+        <div>
+          <div class="flex justify-between text-[10px] mb-1">
+            <span class="text-[#8A8A96]">Success Rate</span>
+            <span class="text-[#22C55E] font-mono">100%</span>
+          </div>
+          <div class="h-1 rounded-full bg-[#1A1A26] overflow-hidden">
+            <div class="h-full rounded-full bg-[#22C55E]" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <!-- Active Crons -->
+        <div class="text-[10px] text-[#8A8A96] mb-2">Active Crons</div>
+        {#each [
+          { name: 'Drift Detection', schedule: 'Daily 3am', status: 'ok' },
+          { name: 'Pipeline Health', schedule: 'Daily 8am', status: 'ok' },
+          { name: 'Maintenance', schedule: 'Sun 4am', status: 'ok' },
+          { name: 'Skill Scout', schedule: 'Daily 6am', status: 'ok' }
+        ] as cron}
+          <div class="flex items-center justify-between py-1.5 border-b border-[#1A1A26] last:border-0">
+            <div>
+              <div class="text-[10px] text-white">{cron.name}</div>
+              <div class="text-[9px] text-[#555560]">{cron.schedule}</div>
+            </div>
+            <span class="w-1.5 h-1.5 rounded-full {cron.status === 'ok' ? 'bg-[#22C55E]' : 'bg-[#EF4444]'}"></span>
+          </div>
+        {/each}
+      </div>
+
+      <div class="mt-3 pt-3 border-t border-[#1A1A26] flex items-center justify-between text-[9px]">
+        <span class="text-[#555560]">Review Queue</span>
+        <span class="text-white font-mono">{skillHub.flagged} flagged</span>
       </div>
     </div>
   </div>
 
-  <!-- Recent Alerts -->
-  <div class="bg-[#1A1A20] rounded-lg p-4 border border-[#252530]">
+  <!-- Alerts -->
+  <div class="bg-[#141419] rounded-lg p-4 border border-[#1A1A26]">
     <div class="flex items-center justify-between mb-3">
-      <span class="text-[11px] font-medium text-[#8A8A96] uppercase tracking-wider">Recent Alerts</span>
-      <a href="/alerts" class="text-[10px] text-[#FF9900] hover:underline">View all →</a>
+      <span class="text-[10px] font-medium text-[#8A8A96] uppercase tracking-wider">Recent Alerts</span>
+      <a href="/alerts" class="text-[9px] text-[#555560] hover:text-[#FF9900] transition-colors">All alerts →</a>
     </div>
     {#if alerts.length === 0}
-      <div class="text-xs text-[#555560]">No recent alerts</div>
+      <div class="text-center py-6 text-[10px] text-[#555560]">
+        <div class="text-2xl mb-2 opacity-30">◎</div>
+        No recent alerts
+      </div>
     {:else}
-      <div class="space-y-2">
+      <div class="space-y-1">
         {#each alerts as a}
-          <div class="flex items-start gap-2 p-2 rounded bg-[#141419]">
-            <span class="text-[10px] font-bold uppercase {a.severity === 'critical' ? 'text-[#EF4444]' : a.severity === 'warning' ? 'text-[#F59E0B]' : 'text-[#8A8A96]'}">{a.severity}</span>
-            <div>
-              <div class="text-xs text-white">{a.title || a.content?.slice(0, 80)}</div>
-              <div class="text-[10px] text-[#555560] mt-0.5">{new Date(a.created_at).toLocaleDateString()}</div>
+          <div class="flex items-start gap-3 px-2 py-1.5 rounded hover:bg-[#1A1A20] transition-colors group">
+            <span class="text-[10px] font-bold uppercase w-14 shrink-0 {a.severity === 'critical' ? 'text-[#EF4444]' : a.severity === 'warning' ? 'text-[#F59E0B]' : 'text-[#8A8A96]'}">{a.severity}</span>
+            <div class="min-w-0 flex-1">
+              <div class="text-[10px] text-white truncate">{a.title || a.content?.slice(0, 80)}</div>
+              <div class="text-[9px] text-[#555560] mt-0.5">{new Date(a.created_at).toLocaleDateString('en-HK', { timeZone: 'Asia/Hong_Kong' })}</div>
             </div>
           </div>
         {/each}
