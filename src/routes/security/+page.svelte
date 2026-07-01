@@ -9,63 +9,67 @@
     findings = await fetchSecurityFindings();
     loading = false;
   });
+
+  $: critical = findings.filter(f => f.severity === 'critical').length;
+  $: warnings = findings.filter(f => f.severity === 'warning').length;
+  $: info = findings.filter(f => f.severity === 'info').length;
 </script>
 
-<div class="space-y-6">
+<div class="space-y-4 sm:space-y-6">
   <div>
-    <h1 class="text-base font-bold text-white tracking-tight">Security</h1>
-    <p class="text-xs text-[#8A8A96]">RLS policies, auth patterns, storage permissions</p>
+    <h1 class="text-xs sm:text-sm font-bold text-white tracking-tight">Security</h1>
+    <p class="text-[9px] sm:text-xs text-[#8A8A96]">RLS policies, auth, Supabase security</p>
   </div>
 
-  <!-- Summary -->
-  <div class="grid grid-cols-3 gap-4">
-    <div class="bg-[#1A1A20] rounded-lg p-4 border border-[#252530] text-center">
-      <div class="text-2xl font-bold text-[#22C55E]">{findings.filter(f => f.severity === 'critical').length}</div>
-      <div class="text-[10px] text-[#8A8A96] mt-1">Critical</div>
+  <!-- Severity summary -->
+  <div class="grid grid-cols-3 gap-2 sm:gap-3">
+    <div class="bg-[#141419] rounded-lg p-3 sm:p-4 border border-[#1A1A26] text-center">
+      <div class="text-xl sm:text-2xl font-bold text-[#EF4444] font-mono">{critical}</div>
+      <div class="text-[9px] sm:text-[10px] text-[#8A8A96] mt-1">Critical</div>
     </div>
-    <div class="bg-[#1A1A20] rounded-lg p-4 border border-[#252530] text-center">
-      <div class="text-2xl font-bold text-[#F59E0B]">{findings.filter(f => f.severity === 'warning').length}</div>
-      <div class="text-[10px] text-[#8A8A96] mt-1">Warnings</div>
+    <div class="bg-[#141419] rounded-lg p-3 sm:p-4 border border-[#1A1A26] text-center">
+      <div class="text-xl sm:text-2xl font-bold text-[#F59E0B] font-mono">{warnings}</div>
+      <div class="text-[9px] sm:text-[10px] text-[#8A8A96] mt-1">Warnings</div>
     </div>
-    <div class="bg-[#1A1A20] rounded-lg p-4 border border-[#252530] text-center">
-      <div class="text-2xl font-bold text-[#8A8A96]">{findings.filter(f => f.severity === 'info').length}</div>
-      <div class="text-[10px] text-[#8A8A96] mt-1">Info</div>
+    <div class="bg-[#141419] rounded-lg p-3 sm:p-4 border border-[#1A1A26] text-center">
+      <div class="text-xl sm:text-2xl font-bold text-[#8A8A96] font-mono">{info}</div>
+      <div class="text-[9px] sm:text-[10px] text-[#8A8A96] mt-1">Info</div>
     </div>
   </div>
 
-  <!-- Per-project -->
-  <div>
-    <h2 class="text-xs font-medium text-[#8A8A96] uppercase tracking-wider mb-3">Projects</h2>
-    <div class="space-y-2">
+  <!-- Supabase projects -->
+  <div class="bg-[#141419] rounded-lg p-3 sm:p-4 border border-[#1A1A26]">
+    <div class="text-[9px] sm:text-[10px] font-medium text-[#8A8A96] uppercase tracking-wider mb-2 sm:mb-3">Supabase Projects</div>
+    <div class="space-y-1.5 sm:space-y-2">
       {#each ['AvionX', 'AvionHub', 'HKRE'] as proj}
-        <div class="bg-[#1A1A20] rounded-lg p-3 border border-[#252530] flex items-center justify-between">
-          <div>
-            <div class="text-xs font-medium text-white">{proj}</div>
-            <div class="text-[10px] text-[#555560]">Supabase project</div>
-          </div>
+        <div class="flex items-center justify-between py-1.5 sm:py-2">
           <div class="flex items-center gap-2">
-            <div class="w-2 h-2 rounded-full bg-[#22C55E]"></div>
-            <span class="text-[10px] text-[#22C55E]">RLS enabled</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-[#22C55E]"></span>
+            <span class="text-[9px] sm:text-xs text-white">{proj}</span>
           </div>
+          <span class="text-[8px] sm:text-[10px] text-[#22C55E]">RLS enabled</span>
         </div>
       {/each}
     </div>
   </div>
 
-  <!-- Storage -->
-  <div class="bg-[#1A1A20] rounded-lg p-4 border border-[#252530]">
-    <div class="text-[11px] font-medium text-[#8A8A96] uppercase tracking-wider mb-2">Storage Buckets</div>
-    <div class="grid grid-cols-2 gap-2 text-xs">
-      <div class="flex items-center gap-2 p-2 bg-[#141419] rounded">
-        <div class="w-1.5 h-1.5 rounded-full bg-[#22C55E]"></div>
-        <span class="text-white">skill-sources</span>
-        <span class="text-[#555560] ml-auto">public</span>
-      </div>
-      <div class="flex items-center gap-2 p-2 bg-[#141419] rounded">
-        <div class="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></div>
-        <span class="text-white">backups</span>
-        <span class="text-[#555560] ml-auto">private</span>
+  <!-- Findings list -->
+  {#if findings.length > 0}
+    <div class="bg-[#141419] rounded-lg p-3 sm:p-4 border border-[#1A1A26]">
+      <div class="text-[9px] sm:text-[10px] font-medium text-[#8A8A96] uppercase tracking-wider mb-2 sm:mb-3">Findings</div>
+      <div class="space-y-1">
+        {#each findings as f}
+          <div class="flex items-start gap-2 py-1.5 border-b border-[#1A1A26] last:border-0">
+            <span class="w-1.5 h-1.5 rounded-full mt-1 shrink-0 {f.severity === 'critical' ? 'bg-[#EF4444]' : f.severity === 'warning' ? 'bg-[#F59E0B]' : 'bg-[#8A8A96]'}"></span>
+            <div class="min-w-0">
+              <div class="text-[9px] sm:text-[10px] text-white">{f.table_name || f.type}</div>
+              <div class="text-[8px] sm:text-[9px] text-[#555560] truncate">{f.description || ''}</div>
+            </div>
+          </div>
+        {/each}
       </div>
     </div>
-  </div>
+  {:else}
+    <div class="text-[9px] sm:text-xs text-[#555560] text-center py-8">No security findings</div>
+  {/if}
 </div>
