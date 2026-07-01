@@ -44,11 +44,10 @@ async function api(path: string): Promise<any> {
 // ─── Service Status ─────────────────────────────────
 
 export async function fetchServiceStatus() {
-  // Try to reach Hermes gateway via nginx
   const services = [
-    { name: 'Hermes Gateway', url: 'http://100.73.98.124:8643/health', key: 'gateway' },
     { name: 'AvionX DB', url: `${SUPABASE_URL}/rest/v1/avion_skills?limit=1`, key: 'avionx' },
     { name: 'AvionHub DB', url: 'https://llmabfvxemenjvfqkhdy.supabase.co/rest/v1/avion_skills?limit=1', key: 'avionhub' },
+    { name: 'Skill Scout', url: 'https://llmabfvxemenjvfqkhdy.supabase.co/rest/v1/avion_skills?select=status&status=eq.published&limit=1', key: 'scout' },
   ];
 
   const results = [];
