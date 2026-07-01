@@ -1,13 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fetchServiceStatus, fetchCosts, fetchAlerts, fetchSkillHubStats, fetchMCPStats } from '$lib/api';
-  import type { MCPStats } from '$lib/api';
+  import { fetchServiceStatus, fetchCosts, fetchAlerts, fetchSkillHubStats, fetchMCPStats, fetchPipelineHealth } from '$lib/api';
+  import type { MCPStats, PipelineHealth } from '$lib/api';
 
   let services: any[] = [];
   let costs: any = { services: [], total: 0, trend: 0 };
   let alerts: any[] = [];
   let skillHub: any = { published: 0, flagged: 0, deprecated: 0, total: 0 };
   let mcp: MCPStats = { connected: 0, tools: 0, prompts: 0, local: 0 };
+  let pipeline: any = { published: 0, flagged: 0, deprecated: 0, drifts: 0 };
+  let crons: any[] = [];
   let loading = true;
   let time = '';
 
@@ -25,6 +27,9 @@
       fetchSkillHubStats(),
       fetchMCPStats()
     ]);
+    const ph = await fetchPipelineHealth();
+    pipeline = ph.health;
+    crons = ph.crons;
     loading = false;
   });
 
@@ -161,27 +166,22 @@
         <div>
           <div class="flex justify-between text-[10px] mb-1">
             <span class="text-[#8A8A96]">Success Rate</span>
-            <span class="text-[#22C55E] font-mono">100%</span>
+            <span class="text-[#22C55E] font-mono">{pipeline.total ? Math.round((pipeline.published / pipeline.total) * 100) : 100}%</span>
           </div>
           <div class="h-1 rounded-full bg-[#1A1A26] overflow-hidden">
-            <div class="h-full rounded-full bg-[#22C55E]" style="width: 100%"></div>
+            <div class="h-full rounded-full bg-[#22C55E]" style="width: {pipeline.total ? Math.round((pipeline.published / pipeline.total) * 100) : 100}%"></div>
           </div>
         </div>
 
         <!-- Active Crons -->
         <div class="text-[10px] text-[#8A8A96] mb-2">Active Crons</div>
-        {#each [
-          { name: 'Drift Detection', schedule: 'Daily 3am', status: 'ok' },
-          { name: 'Pipeline Health', schedule: 'Daily 8am', status: 'ok' },
-          { name: 'Maintenance', schedule: 'Sun 4am', status: 'ok' },
-          { name: 'Skill Scout', schedule: 'Daily 6am', status: 'ok' }
-        ] as cron}
+        {#each crons as cron}
           <div class="flex items-center justify-between py-1.5 border-b border-[#1A1A26] last:border-0">
             <div>
               <div class="text-[10px] text-white">{cron.name}</div>
               <div class="text-[9px] text-[#555560]">{cron.schedule}</div>
             </div>
-            <span class="w-1.5 h-1.5 rounded-full {cron.status === 'ok' ? 'bg-[#22C55E]' : 'bg-[#EF4444]'}"></span>
+            <span class="w-1.5 h-1.5 rounded-full {cron.status === 'ok' ? 'bg-[#22C55E]' : cron.status === 'error' ? 'bg-[#EF4444]' : 'bg-[#555560]'}"></span>
           </div>
         {/each}
       </div>

@@ -166,6 +166,66 @@ export async function fetchMCPStats(): Promise<MCPStats> {
   }
 }
 
+// ─── Pipeline Health ──────────────────────────────
+
+export interface PipelineHealth {
+  published: number;
+  flagged: number;
+  deprecated: number;
+  drifts: number;
+  total: number;
+}
+
+export async function fetchPipelineHealth(): Promise<{ health: PipelineHealth, crons: any[] }> {
+  try {
+    const data = await api('avion_publisher?select=title,content,severity,created_at&type=eq.cron_result&order=created_at.desc&limit=10');
+    
+    // Parse latest pipeline health report
+    const health: PipelineHealth = { published: 0, flagged: 0, deprecated: 0, drifts: 0, total: 0 };
+    for (const entry of data) {
+      const content = entry.content || '';
+      const pubMatch = content.match(/(\d+)\s*published/);
+      const flagMatch = content.match(/(\d+)\s*flagged/);
+      const depMatch = content.match(/(\d+)\s*deprecated/);
+      const driftMatch = content.match(/(\d+)\s*source drifts/);
+      if (pubMatch) health.published = parseInt(pubMatch[1]);
+      if (flagMatch) health.flagged = parseInt(flagMatch[1]);
+      if (depMatch) health.deprecated = parseInt(depMatch[1]);
+      if (driftMatch) health.drifts = parseInt(driftMatch[1]);
+      if (health.published > 0) break; // got data from latest report
+    }
+    health.total = health.published + health.flagged + health.deprecated;
+
+    // Parse cron statuses from pipeline entries
+    const cronMap = new Map<string, any>();
+    for (const entry of data) {
+      const name = entry.title || '';
+      if (name.includes('Drift') || name.includes('Pipeline') || name.includes('Maintenance') || name.includes('Scout')) {
+        if (!cronMap.has(name)) {
+          cronMap.set(name, {
+            name,
+            schedule: name.includes('Drift') ? 'Daily 3am' : name.includes('Pipeline') ? 'Daily 8am' : name.includes('Maintenance') ? 'Sun 4am' : 'Daily 6am',
+            status: entry.severity === 'critical' ? 'error' : 'ok'
+          });
+        }
+      }
+    }
+    const crons = Array.from(cronMap.values());
+
+    return { health, crons };
+  } catch {
+    return {
+      health: { published: 0, flagged: 0, deprecated: 0, drifts: 0, total: 0 },
+      crons: [
+        { name: 'Drift Detection', schedule: 'Daily 3am', status: 'ok' },
+        { name: 'Pipeline Health', schedule: 'Daily 8am', status: 'ok' },
+        { name: 'Maintenance', schedule: 'Sun 4am', status: 'ok' },
+        { name: 'Skill Scout', schedule: 'Daily 6am', status: 'ok' }
+      ]
+    };
+  }
+}
+
 // ─── Security ────────────────────────────────────────
 
 export async function fetchSecurityFindings(): Promise<SecurityFinding[]> {
