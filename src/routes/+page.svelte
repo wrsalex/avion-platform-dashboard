@@ -19,19 +19,22 @@
 
   onMount(async () => {
     tick();
-    const clock = setInterval(tick, 30000);
-    [services, costs, alerts, skillHub, mcp] = await Promise.all([
-      fetchServiceStatus(),
-      fetchCosts(),
-      fetchAlerts(5),
-      fetchSkillHubStats(),
-      fetchMCPStats()
-    ]);
-    const ph = await fetchPipelineHealth();
-    pipeline = ph.health;
-    crons = ph.crons;
+    setInterval(tick, 1000);
+    const refresh = async () => {
+      [services, costs, alerts, skillHub, mcp] = await Promise.all([
+        fetchServiceStatus(),
+        fetchCosts(),
+        fetchAlerts(5),
+        fetchSkillHubStats(),
+        fetchMCPStats()
+      ]);
+      const ph = await fetchPipelineHealth();
+      pipeline = ph.health;
+      crons = ph.crons;
+    };
+    await refresh();
     loading = false;
-    return () => clearInterval(clock);
+    setInterval(refresh, 60000); // auto-refresh every 60s
   });
 
   const health = $derived(
