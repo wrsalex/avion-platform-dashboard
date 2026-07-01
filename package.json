@@ -18,5 +18,8 @@
     "vite": "^6",
     "wrangler": "^4.106.0"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.0"
+  }
 }

@@ -1,7 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { createClient } from '@supabase/supabase-js';
   import { fetchServiceStatus, fetchCosts, fetchAlerts, fetchSkillHubStats, fetchMCPStats, fetchPipelineHealth } from '$lib/api';
   import type { MCPStats, PipelineHealth } from '$lib/api';
+
+  const supabase = createClient('https://jmpiossnslzqpjschgpj.supabase.co', 'sb_publishable_-4g2MopTjvbhzBCyIHdBQg_Ai47uwuv');
 
   let services: any[] = [];
   let costs: any = { services: [], total: 0, trend: 0 };
@@ -12,6 +15,8 @@
   let crons: any[] = [];
   let loading = true;
   let time = '';
+  let live = false;
+  let channel: any = null;
 
   function tick() {
     time = new Date().toLocaleTimeString('en-HK', { hour12: false, timeZone: 'Asia/Hong_Kong' });
@@ -34,7 +39,23 @@
     };
     await refresh();
     loading = false;
-    setInterval(refresh, 60000); // auto-refresh every 60s
+    setInterval(refresh, 60000);
+
+    // Subscribe to live alerts via Supabase Realtime
+    channel = supabase
+      .channel('avion_publisher_changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'avion_publisher' }, (payload: any) => {
+        live = true;
+        alerts = [payload.new, ...alerts].slice(0, 20);
+        setTimeout(() => live = false, 3000);
+      })
+      .subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') live = true;
+      });
+  });
+
+  onDestroy(() => {
+    if (channel) supabase.removeChannel(channel);
   });
 
   const health = $derived(
@@ -52,7 +73,7 @@
   <!-- Title Bar -->
   <div class="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-1">
     <h1 class="text-sm font-bold text-white tracking-wide">Overview</h1>
-    <p class="text-[10px] text-[#555560] font-mono">{time} HKT · <span class="{health === 'operational' ? 'text-[#22C55E]' : health === 'degraded' ? 'text-[#F59E0B]' : 'text-[#EF4444]'}">{health}</span></p>
+    <p class="text-[10px] text-[#555560] font-mono">{time} HKT · <span class="{live ? 'text-[#22C55E]' : health === 'operational' ? 'text-[#22C55E]' : health === 'degraded' ? 'text-[#F59E0B]' : 'text-[#EF4444]'}">{live ? 'Live' : health}</span></p>
   </div>
 
   <!-- Status Strip -->
