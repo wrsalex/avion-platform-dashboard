@@ -62,8 +62,8 @@
           <div class="flex items-start gap-2 py-1.5 border-b border-[#1A1A26] last:border-0">
             <span class="w-1.5 h-1.5 rounded-full mt-1 shrink-0 {f.severity === 'critical' ? 'bg-[#EF4444]' : f.severity === 'warning' ? 'bg-[#F59E0B]' : 'bg-[#8A8A96]'}"></span>
             <div class="min-w-0">
-              <div class="text-[9px] sm:text-[10px] text-white">{f.table_name || f.type}</div>
-              <div class="text-[8px] sm:text-[9px] text-[#555560] truncate">{f.description || ''}</div>
+              <div class="text-[9px] sm:text-[10px] text-white">{f.title}</div>
+              <div class="text-[8px] sm:text-[9px] text-[#555560]">{f.zone} · {f.description?.slice(0, 60) || ''}</div>
             </div>
           </div>
         {/each}

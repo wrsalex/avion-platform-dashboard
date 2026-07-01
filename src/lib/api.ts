@@ -24,9 +24,10 @@ export interface Alert {
 }
 
 export interface SecurityFinding {
-  type: string;
+  project: string;
+  title: string;
   severity: string;
-  table_name: string;
+  zone: string;
   description: string;
 }
 
@@ -229,9 +230,8 @@ export async function fetchPipelineHealth(): Promise<{ health: PipelineHealth, c
 // ─── Security ────────────────────────────────────────
 
 export async function fetchSecurityFindings(): Promise<SecurityFinding[]> {
-  // Try Supabase advisor via RPC or direct table query
   try {
-    return await api('avion_security_controls?select=type,severity,table_name,description&order=created_at.desc&limit=20');
+    return await api('avion_security_controls?select=project,title,severity,zone,description&order=created_at.desc&limit=20');
   } catch {
     return [];
   }
