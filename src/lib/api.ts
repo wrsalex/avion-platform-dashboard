@@ -71,16 +71,43 @@ export async function fetchServiceStatus() {
 // ─── Costs ───────────────────────────────────────────
 
 export async function fetchCosts(): Promise<{ services: ServiceCost[], total: number, trend: number }> {
-  const services: ServiceCost[] = [
-    { service: 'DeepSeek', current_month: 18.42, previous_month: 19.80, trend_pct: -7 },
-    { service: 'ElevenLabs', current_month: 5.00, previous_month: 5.00, trend_pct: 0 },
-    { service: 'Hostinger', current_month: 8.99, previous_month: 8.99, trend_pct: 0 },
-    { service: 'Decodo', current_month: 0, previous_month: 0, trend_pct: 0 },
-  ];
-  const total = services.reduce((s, c) => s + c.current_month, 0);
-  const prevTotal = services.reduce((s, c) => s + c.previous_month, 0);
-  const trend = prevTotal > 0 ? Math.round(((total - prevTotal) / prevTotal) * 100) : 0;
-  return { services, total, trend };
+  try {
+    // Call the Postgres function via Supabase RPC
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_monthly_costs`, {
+      method: 'POST',
+      headers: {
+        apikey: ANON_KEY,
+        Authorization: `Bearer ${ANON_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    
+    const services: ServiceCost[] = rows.map((r: any) => ({
+      service: r.service,
+      current_month: Number(r.current_month),
+      previous_month: Number(r.previous_month),
+      trend_pct: Number(r.trend_pct)
+    }));
+    
+    const total = services.reduce((s, c) => s + c.current_month, 0);
+    const prevTotal = services.reduce((s, c) => s + c.previous_month, 0);
+    const trend = prevTotal > 0 ? Math.round(((total - prevTotal) / prevTotal) * 100) : 0;
+    return { services, total, trend };
+  } catch {
+    // Fallback: return zeros
+    return {
+      services: [
+        { service: 'DeepSeek', current_month: 0, previous_month: 0, trend_pct: 0 },
+        { service: 'ElevenLabs', current_month: 0, previous_month: 0, trend_pct: 0 },
+        { service: 'Hostinger', current_month: 0, previous_month: 0, trend_pct: 0 },
+        { service: 'Decodo', current_month: 0, previous_month: 0, trend_pct: 0 }
+      ],
+      total: 0,
+      trend: 0
+    };
+  }
 }
 
 // ─── Alerts ──────────────────────────────────────────
