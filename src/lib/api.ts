@@ -123,30 +123,23 @@ export async function fetchAlerts(limit = 50): Promise<Alert[]> {
 // ─── Skill Hub Stats ─────────────────────────────────
 
 export async function fetchSkillHubStats(): Promise<SkillHubStats> {
+  const AVIONHUB_URL = 'https://llmabfvxemenjvfqkhdy.supabase.co';
+  const AVIONHUB_KEY = 'sb_publishable_qF6j7NyBssY3-2CJjOQT-w_Mgb2MIqE';
+  
   try {
-    const data = await api('avion_skills?select=status');
+    const res = await fetch(`${AVIONHUB_URL}/rest/v1/avion_skills?select=status`, {
+      headers: { apikey: AVIONHUB_KEY }
+    });
+    const data = await res.json();
     const stats: SkillHubStats = { published: 0, flagged: 0, deprecated: 0, total: 0 };
     for (const s of data) {
-      stats[s.status] = (stats[s.status] || 0) + 1;
+      const st = s.status as keyof SkillHubStats;
+      if (st in stats) stats[st]++;
       stats.total++;
     }
     return stats;
   } catch {
-    // Fallback: try AvionHub directly
-    try {
-      const res = await fetch('https://llmabfvxemenjvfqkhdy.supabase.co/rest/v1/avion_skills?select=status', {
-        headers: { apikey: 'sb_publishable_qF6j7NyBssY3-2CJjOQT-w_Mgb2MIqE' }
-      });
-      const data = await res.json();
-      const stats: SkillHubStats = { published: 0, flagged: 0, deprecated: 0, total: 0 };
-      for (const s of data) {
-        stats[s.status] = (stats[s.status] || 0) + 1;
-        stats.total++;
-      }
-      return stats;
-    } catch {
-      return { published: 0, flagged: 0, deprecated: 0, total: 0 };
-    }
+    return { published: 0, flagged: 0, deprecated: 0, total: 0 };
   }
 }
 
