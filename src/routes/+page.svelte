@@ -1,11 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fetchServiceStatus, fetchCosts, fetchAlerts, fetchSkillHubStats } from '$lib/api';
+  import { fetchServiceStatus, fetchCosts, fetchAlerts, fetchSkillHubStats, fetchMCPStats } from '$lib/api';
+  import type { MCPStats } from '$lib/api';
 
   let services: any[] = [];
   let costs: any = { services: [], total: 0, trend: 0 };
   let alerts: any[] = [];
   let skillHub: any = { published: 0, flagged: 0, deprecated: 0, total: 0 };
+  let mcp: MCPStats = { connected: 0, tools: 0, prompts: 0, local: 0 };
   let loading = true;
   let time = '';
 
@@ -16,11 +18,12 @@
   onMount(async () => {
     tick();
     setInterval(tick, 1000);
-    [services, costs, alerts, skillHub] = await Promise.all([
+    [services, costs, alerts, skillHub, mcp] = await Promise.all([
       fetchServiceStatus(),
       fetchCosts(),
       fetchAlerts(5),
-      fetchSkillHubStats()
+      fetchSkillHubStats(),
+      fetchMCPStats()
     ]);
     loading = false;
   });
@@ -186,6 +189,50 @@
       <div class="mt-3 pt-3 border-t border-[#1A1A26] flex items-center justify-between text-[9px]">
         <span class="text-[#555560]">Review Queue</span>
         <span class="text-white font-mono">{skillHub.flagged} flagged</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Integrations: MCP + Toolbox -->
+  <div class="grid grid-cols-2 gap-3">
+    <!-- MCP Servers -->
+    <div class="bg-[#141419] rounded-lg p-4 border border-[#1A1A26]">
+      <span class="text-[10px] font-medium text-[#8A8A96] uppercase tracking-wider">MCP Servers</span>
+      <div class="text-3xl font-bold text-white mb-1 mt-3 font-mono">{mcp.connected}</div>
+      <div class="text-[10px] text-[#555560]">connected</div>
+      <div class="mt-3 pt-3 border-t border-[#1A1A26] grid grid-cols-2 gap-3">
+        <div>
+          <div class="text-xs font-bold text-white font-mono">{mcp.tools}</div>
+          <div class="text-[9px] text-[#555560]">Total tools</div>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-white font-mono">{mcp.prompts}</div>
+          <div class="text-[9px] text-[#555560]">Prompts</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbox -->
+    <div class="bg-[#141419] rounded-lg p-4 border border-[#1A1A26]">
+      <span class="text-[10px] font-medium text-[#8A8A96] uppercase tracking-wider">Toolbox</span>
+      <div class="mt-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] text-[#8A8A96]">Prompt tools</span>
+          <span class="text-xs text-white font-mono">{mcp.prompts}</span>
+        </div>
+        <div class="h-1 rounded-full bg-[#1A1A26] overflow-hidden">
+          <div class="h-full rounded-full bg-[#FF9900]" style="width: {mcp.tools > 0 ? (mcp.prompts / mcp.tools) * 100 : 0}%"></div>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] text-[#8A8A96]">Local actions</span>
+          <span class="text-xs text-white font-mono">{mcp.local}</span>
+        </div>
+        <div class="h-1 rounded-full bg-[#1A1A26] overflow-hidden">
+          <div class="h-full rounded-full bg-[#8A8A96]" style="width: {mcp.tools > 0 ? (mcp.local / mcp.tools) * 100 : 0}%"></div>
+        </div>
+      </div>
+      <div class="mt-3 pt-3 border-t border-[#1A1A26] text-[9px] text-[#555560]">
+        <span class="text-white font-mono">{mcp.tools}</span> tools across {mcp.connected} MCP servers
       </div>
     </div>
   </div>
