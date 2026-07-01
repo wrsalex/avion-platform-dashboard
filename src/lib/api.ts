@@ -85,8 +85,8 @@ export async function fetchCosts(): Promise<{ services: ServiceCost[], total: nu
     
     const services: ServiceCost[] = rows.map((r: any) => ({
       service: r.service,
-      current_month: Number(r.current_month),
-      previous_month: Number(r.previous_month),
+      current_month: Math.max(0, Number(r.current_month)),
+      previous_month: Math.max(0, Number(r.previous_month)),
       trend_pct: Number(r.trend_pct)
     }));
     
@@ -113,7 +113,7 @@ export async function fetchCosts(): Promise<{ services: ServiceCost[], total: nu
 
 export async function fetchAlerts(limit = 50): Promise<Alert[]> {
   try {
-    return await api(`avion_publisher?select=id,severity,title,content,created_at&order=created_at.desc&limit=${limit}`);
+    return await api(`avion_publisher?select=id,severity,title,content,created_at&type=eq.alert&order=created_at.desc&limit=${limit}`);
   } catch {
     return [];
   }
@@ -177,11 +177,12 @@ export interface PipelineHealth {
 
 export async function fetchPipelineHealth(): Promise<{ health: PipelineHealth, crons: any[] }> {
   try {
-    const data = await api('avion_publisher?select=title,content,severity,created_at&type=eq.cron_result&order=created_at.desc&limit=10');
+    const data = await api('avion_publisher?select=title,content,severity,created_at&type=eq.cron_result&order=created_at.desc&limit=20');
     
-    // Parse latest pipeline health report
+    // Parse latest "Skill Hub Pipeline" report for health data
     const health: PipelineHealth = { published: 0, flagged: 0, deprecated: 0, drifts: 0, total: 0 };
     for (const entry of data) {
+      if (!entry.title?.includes('Skill Hub Pipeline') && !entry.title?.includes('Pipeline')) continue;
       const content = entry.content || '';
       const pubMatch = content.match(/(\d+)\s*published/);
       const flagMatch = content.match(/(\d+)\s*flagged/);
@@ -191,7 +192,7 @@ export async function fetchPipelineHealth(): Promise<{ health: PipelineHealth, c
       if (flagMatch) health.flagged = parseInt(flagMatch[1]);
       if (depMatch) health.deprecated = parseInt(depMatch[1]);
       if (driftMatch) health.drifts = parseInt(driftMatch[1]);
-      if (health.published > 0) break; // got data from latest report
+      if (health.published > 0) break;
     }
     health.total = health.published + health.flagged + health.deprecated;
 
